@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f5f6f8;color:#1a1a1a;font-size:15px;line-height:1.5}
+.wrap{max-width:820px;margin:0 auto;padding:24px 20px;min-height:100vh}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap}
+.title{font-size:18px;font-weight:700}
+.controls{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.lang-select{padding:7px 12px;border:1px solid #d4d6dc;border-radius:8px;background:#fff;font-family:inherit;font-size:14px;cursor:pointer;color:#1a1a1a}
+.lang-select:focus{outline:2px solid #2563eb;outline-offset:-1px}
+.btn{padding:7px 14px;border:1px solid #d4d6dc;border-radius:8px;background:#fff;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;color:#1a1a1a;transition:all .15s}
+.btn:hover{background:#eef0f4;border-color:#b8bcc5}
+.btn-primary{background:#2563eb;color:#fff;border-color:#2563eb}
+.btn-primary:hover{background:#1d4ed8;border-color:#1d4ed8}
+.btn-danger{background:#fff;color:#dc2626;border-color:#fca5a5}
+.btn-danger:hover{background:#fef2f2;border-color:#dc2626}
+.scenarios{display:flex;gap:6px;margin-bottom:20px;padding-bottom:4px;flex-wrap:wrap}
+.sc-btn{padding:7px 13px;border:1px solid #d4d6dc;border-radius:20px;background:#fff;font-family:inherit;font-size:13px;cursor:pointer;color:#4b5563;white-space:nowrap;transition:all .15s}
+.sc-btn:hover{background:#eef0f4;border-color:#b8bcc5}
+.sc-btn.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.chat{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:16px;min-height:140px;max-height:380px;overflow-y:auto}
+.chat:empty::before{content:'Pick a question above to start';color:#9ca3af;font-size:14px;display:block;text-align:center;padding:40px 0}
+.msg{margin-bottom:14px;display:flex;gap:10px}
+.msg:last-child{margin-bottom:0}
+.msg.user{flex-direction:row}
+.msg.agent{flex-direction:row-reverse}
+.avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;background:#e5e7eb;color:#4b5563}
+.avatar.agent{background:#1a1a1a;color:#fff}
+.bubble{padding:9px 13px;border-radius:12px;font-size:14px;line-height:1.5;max-width:75%}
+.msg.user .bubble{background:#f0f1f4;border:1px solid #e5e7eb}
+.msg.agent .bubble{background:#1a1a1a;color:#fff}
+.reaction{font-size:13px;color:#6b7280;padding:6px 11px;border-radius:8px;background:#f9fafb;border:1px solid #e5e7eb;animation:fadeIn .3s ease;max-width:75%}
+.reaction.bad{background:#fef2f2;border-color:#fecaca;color:#dc2626}
+.reaction.ok{background:#fffbeb;border-color:#fde68a;color:#92400e}
+.reaction.good{background:#f0fdf4;border-color:#bbf7d0;color:#15803d}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.editor-panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:12px}
+.editor-panel.hidden{display:none}
+.editor-label{font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;display:flex;align-items:center;gap:6px;justify-content:space-between}
+.editor-label-left{display:flex;align-items:center;gap:6px}
+.ai-tag{background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:0;text-transform:none}
+.highlighted-preview{background:#fafafa;border:1px solid #e5e7eb;border-radius:8px;padding:11px 13px;font-size:14px;line-height:1.55;margin-bottom:10px;min-height:60px;color:#4b5563}
+.highlighted-preview .ai-phrase{background:#fecaca;color:#991b1b;padding:1px 4px;border-radius:3px;font-weight:500}
+.editor{width:100%;min-height:110px;padding:11px 13px;border:1px solid #d4d6dc;border-radius:8px;font-family:inherit;font-size:14px;line-height:1.55;resize:vertical;outline:none;color:#1a1a1a;background:#fff;transition:border-color .15s}
+.editor:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.editor-actions{display:flex;gap:6px;margin-top:10px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.editor-status{font-size:12px;color:#6b7280}
+.editor-status.warn{color:#dc2626}
+.editor-status.ok{color:#15803d}
+.action-group{display:flex;gap:6px;flex-wrap:wrap}
+.legend{display:flex;gap:14px;font-size:11px;color:#6b7280;margin-top:10px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px}
+.legend-swatch{width:10px;height:10px;border-radius:2px;background:#fecaca}
+@media(max-width:640px){.wrap{padding:14px 12px}.header{gap:8px}.title{font-size:16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="header">
+  <div class="title">Agent Trainer</div>
+  <div class="controls">
+    <select class="lang-select" id="langSel" onchange="switchLang(this.value)">
+      <option value="en">🇬🇧 English</option>
+      <option value="uk">🇺🇦 Українська</option>
+      <option value="de">🇩🇪 Deutsch</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="es">🇪🇸 Español</option>
+      <option value="it">🇮🇹 Italiano</option>
+      <option value="pl">🇵🇱 Polski</option>
+    </select>
+    <button class="btn btn-danger" onclick="resetSession()">Reset</button>
+  </div>
+</div>
+<div class="scenarios" id="scenarios"></div>
+<div class="chat" id="chat"></div>
+<div class="editor-panel hidden" id="editorPanel">
+  <div class="editor-label">
+    <div class="editor-label-left">
+      <span class="ai-tag">AI draft</span>
+      <span>Edit in your own words</span>
+    </div>
+  </div>
+  <div class="highlighted-preview" id="preview"></div>
+  <textarea class="editor" id="editor" oninput="onEdit()" spellcheck="true"></textarea>
+  <div class="editor-actions">
+    <div class="editor-status" id="status">Rewrite to sound human</div>
+    <div class="action-group">
+      <button class="btn" onclick="copyText()">Copy</button>
+      <button class="btn" onclick="pasteText()">Paste</button>
+      <button class="btn" onclick="selectAll()">Select all</button>
+      <button class="btn" onclick="clearText()">Clear</button>
+      <button class="btn" onclick="resetDraft()">↩ Reset draft</button>
+      <button class="btn btn-primary" onclick="sendMsg()">Send →</button>
+    </div>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><span class="legend-swatch"></span>AI phrases — replace these</div>
+  </div>
+</div>
+</div>
+<script>
+const FILLERS={
+  en:['Certainly!','Of course!','Great question!','Absolutely!','I sincerely apologize','I completely understand','Please do not hesitate','I would be more than happy','Rest assured','I want to assure you','I hope this helps','As per your request','Kindly note','Please be advised','Please allow me to','I would be delighted','I am happy to','is there anything else','I am here to help','You can definitely','That is a fantastic','It is important to note','Please feel free'],
+  uk:['Звісно!','Звичайно!','Чудове питання!','Щиро вибачаюся','Я цілком розумію','Будь ласка, не соромтесь','Я буду радий','Будьте впевнені','Хочу запевнити','Сподіваюсь, це допомогло','Відповідно до вашого запиту','Дозвольте мені','Звертайтесь будь-коли','Я готовий допомогти','Важливо зазначити','Чи є ще щось'],
+  de:['Natürlich!','Selbstverständlich!','Tolle Frage!','Absolut!','Ich entschuldige mich aufrichtig','Ich verstehe vollkommen','Bitte zögern Sie nicht','Ich würde mich sehr freuen','Seien Sie versichert','Ich möchte Sie versichern','Ich hoffe das hilft','Gemäß Ihrer Anfrage','Bitte erlauben Sie mir','Es ist wichtig zu beachten'],
+  fr:["Bien sûr!",'Certainement!','Excellente question!','Absolument!','Je suis sincèrement désolé','Je comprends tout à fait',"N'hésitez pas",'Je serais ravi','Soyez assuré','Je tiens à vous assurer','Je serais plus que ravi','Il est important de noter'],
+  es:['¡Por supuesto!','¡Claro que sí!','¡Excelente pregunta!','¡Absolutamente!','Lo siento sinceramente','Entiendo completamente','No dude en','Estaré encantado','Tenga por seguro','Quiero asegurarle','Permítame','Es importante señalar'],
+  it:['Certamente!','Certo!','Ottima domanda!','Assolutamente!','Mi scuso sinceramente','Capisco perfettamente','Non esiti a','Sarò felice','Stia tranquillo','Voglio assicurarla','Mi permetta','È importante notare'],
+  pl:['Oczywiście!','Z przyjemnością!','Doskonałe pytanie!','Absolutnie!','Szczerze przepraszam','W pełni rozumiem','Nie wahaj się','Chętnie pomogę','Proszę być pewnym','Chcę zapewnić','Pozwoli Pan','Ważne jest aby zauważyć']
+};
+
+const REACTIONS={
+  en:{bad:['Hmm, this feels like a bot reply...','Did anyone actually read my message?','Generic response — not helpful.','Sounds like copy-paste from a manual.'],
+      ok:['Ok, I guess that works.','Clear enough, thanks.','Alright, that helps a bit.'],
+      good:['Thanks, that actually helped!','This feels like talking to a real person.',"Great, that's exactly what I needed.",'Perfect, thank you so much!']},
+  uk:{bad:['Відповідь виглядає як бот...','Мене взагалі хтось читав?','Шаблонна відповідь, не допомагає.','Схоже на копіпаст з інструкції.'],
+      ok:['Ок, працює.','Зрозуміло, дякую.','Добре, трохи допомогло.'],
+      good:['Дякую, це реально допомогло!','Приємно говорити з живою людиною.','Супер, саме те що треба.','Ідеально, дякую!']},
+  de:{bad:['Das klingt wie ein Bot...','Hat jemand meine Nachricht gelesen?','Standardantwort, hilft nicht.','Klingt wie Copy-Paste.'],
+      ok:['Ok, funktioniert.','Klar, danke.','Hilft ein bisschen.'],
+      good:['Danke, das hat wirklich geholfen!','Fühlt sich menschlich an.','Super, genau was ich brauchte.','Perfekt, vielen Dank!']},
+  fr:{bad:['Ça ressemble à un bot...',"Quelqu'un a lu mon message?",'Réponse générique, peu utile.','Copier-coller évident.'],
+      ok:['Ok, ça marche.','Clair, merci.','Ça aide un peu.'],
+      good:['Merci, ça a vraiment aidé!',"On dirait une vraie personne.","Super, exactement ce dont j'avais besoin.",'Parfait, merci beaucoup!']},
+  es:{bad:['Esto parece un bot...','¿Alguien leyó mi mensaje?','Respuesta genérica, no ayuda.','Suena a copy-paste.'],
+      ok:['Ok, funciona.','Claro, gracias.','Ayuda un poco.'],
+      good:['¡Gracias, eso sí ayudó!','Parece una persona real.','Perfecto, justo lo que necesitaba.','¡Gracias, genial!']},
+  it:{bad:['Sembra un bot...','Qualcuno ha letto il mio messaggio?','Risposta generica, non aiuta.','Sembra copia-incolla.'],
+      ok:['Ok, funziona.','Chiaro, grazie.','Aiuta un po\'.'],
+      good:['Grazie, ha davvero aiutato!','Sembra una persona vera.','Perfetto, proprio quello che serviva.','Grazie mille!']},
+  pl:{bad:['To brzmi jak bot...','Czy ktoś przeczytał moją wiadomość?','Standardowa odpowiedź, nie pomaga.','Brzmi jak kopiuj-wklej.'],
+      ok:['Ok, działa.','Jasne, dzięki.','Trochę pomaga.'],
+      good:['Dzięki, to naprawdę pomogło!','To brzmi jak prawdziwa osoba.','Super, dokładnie to czego potrzebowałem.','Idealne, dziękuję!']}
+};
+
+// ═══ SCENARIOS — 6 fitness questions ═══
+const SCENARIOS={
+en:[
+  {name:"No equipment workout",
+   turns:[{u:"How can I work out without equipment?"},{u:"Sounds good. How many times a week should I do it?"},{u:"Perfect. Can you send me a sample 10-minute routine?"}],
+   drafts:["Great question! Absolutely, there are many effective bodyweight exercises you can do without any equipment. I would be more than happy to explain. You can definitely build strength using exercises like push-ups, squats, lunges, planks, burpees, and mountain climbers. These target all major muscle groups. Please do not hesitate to ask if you need more guidance.","Certainly! I would be delighted to recommend a schedule. It is important to note that for beginners, 3-4 times per week is ideal, with rest days in between. I want to assure you that consistency matters more than intensity. Please feel free to adjust based on how your body feels.","Of course! I would be more than happy to share a sample routine. Here is a great 10-minute circuit: 45 seconds each of jumping jacks, push-ups, squats, plank, lunges, rest 15 seconds between. Repeat twice. Rest assured this is suitable for most fitness levels. Please do not hesitate to reach out with any questions."]},
+  {name:"Food for muscle gain",
+   turns:[{u:"What should I eat to gain muscles?"},{u:"How much protein per day?"},{u:"What if I'm vegetarian?"}],
+   drafts:["Great question! I would be more than happy to help. To gain muscle, it is important to note that you need a combination of protein, complex carbs, and healthy fats. Please allow me to recommend foods like chicken, eggs, fish, lean beef, Greek yogurt, quinoa, brown rice, oats, nuts, and plenty of vegetables. I want to assure you that a caloric surplus of around 200-300 kcal above maintenance is ideal.","Certainly! It is important to note that the general recommendation is 1.6 to 2.2 grams of protein per kilogram of bodyweight per day. I would be delighted to help you calculate. For example, if you weigh 70kg, aim for 112-154g daily. Please do not hesitate to ask more questions.","Absolutely! I am happy to assure you that a vegetarian diet can absolutely support muscle growth. Please allow me to suggest lentils, chickpeas, tofu, tempeh, Greek yogurt, cottage cheese, eggs (if lacto-ovo), quinoa, and plant-based protein powders. Rest assured you can reach your goals with proper planning."]},
+  {name:"Weight loss goal",
+   turns:[{u:"How can I reach my goal of losing weight?"},{u:"I want to lose about 10kg. Is that realistic in 3 months?"},{u:"Should I do cardio or strength training?"}],
+   drafts:["Great question! I would be more than happy to help. It is important to note that sustainable weight loss comes from a combination of caloric deficit, regular exercise, and lifestyle changes. Please allow me to recommend focusing on whole foods, drinking plenty of water, getting 7-9 hours of sleep, and being consistent. I want to assure you that slow and steady wins this race.","Certainly! I completely understand your goal. It is important to note that a safe and sustainable rate is 0.5-1kg per week, which means 10kg in 3 months is achievable but ambitious. Please do not hesitate to adjust your timeline if needed. Rest assured that consistency is more important than speed.","Absolutely! I would be delighted to explain. It is important to note that both are crucial — cardio burns calories during the workout, while strength training builds muscle which boosts your metabolism long-term. I would be more than happy to recommend a mix: 3 strength sessions and 2-3 cardio sessions per week."]},
+  {name:"Lost motivation",
+   turns:[{u:"I've lost motivation. How can I keep going?"},{u:"It's hard to get back after missing a week."},{u:"Any tips for staying consistent long-term?"}],
+   drafts:["Great question! I completely understand your frustration. I want to assure you that losing motivation is completely normal and happens to everyone. Please do not hesitate to try strategies like setting smaller achievable goals, working out with a friend, tracking your progress, and celebrating small wins. Rest assured that this is a phase and you will push through.","Absolutely! I completely understand how you feel. It is important to note that missing a week is not the end of your journey. Please allow me to suggest starting with just 10 minutes today — something is always better than nothing. I want to assure you that one step today is all that matters.","Certainly! I would be more than happy to share some tips. Please allow me to recommend finding activities you genuinely enjoy, scheduling workouts like meetings, preparing your gear the night before, and remembering your 'why'. Rest assured that consistency beats perfection every single time."]},
+  {name:"Injury workouts",
+   turns:[{u:"I have injuries. What workouts are safe for me?"},{u:"My lower back hurts sometimes."},{u:"Can I still do cardio?"}],
+   drafts:["Great question! I completely understand your concern. I want to assure you that safety comes first. It is important to note that I would strongly recommend consulting with a physiotherapist or doctor first to understand your specific limitations. Please do not hesitate to share more details so I can provide more tailored suggestions. Rest assured there are many safe options.","Absolutely! I completely understand. For lower back issues, it is important to note that you should avoid heavy deadlifts, weighted squats, and high-impact movements. Please allow me to recommend core-strengthening exercises like planks, bird-dogs, dead bugs, glute bridges, and gentle stretching. I want to assure you that strengthening your core often helps reduce back pain.","Certainly! I would be more than happy to help. Please allow me to recommend low-impact cardio options such as swimming, cycling (stationary), elliptical, and brisk walking. Rest assured these are gentle on your joints and back. I want to assure you that you can absolutely stay active safely."]},
+  {name:"Change training plan",
+   turns:[{u:"I want to make changes to my training plan."},{u:"I want to focus more on strength, less on cardio."},{u:"Also can we add more rest days?"}],
+   drafts:["Great question! I would be more than happy to help you adjust your plan. I want to assure you that flexibility is important in any training program. Please do not hesitate to share what changes you have in mind so I can assist you further. Rest assured that we can modify your plan to better suit your current goals and preferences.","Absolutely! I completely understand your preference. I would be delighted to restructure your plan to emphasize strength. Please allow me to suggest moving to 4 strength days with heavier weights and lower reps, and reducing cardio to 1-2 shorter sessions per week. Rest assured this will help you build muscle more effectively.","Certainly! I completely understand your need for more recovery. It is important to note that rest is when muscles actually grow, so more rest days are a great idea. I would be more than happy to update your plan to include 2-3 full rest days per week. Please do not hesitate to adjust further if needed."]}
+],
+uk:[
+  {name:"Тренування без обладнання",
+   turns:[{u:"Як можна тренуватися без обладнання?"},{u:"Звучить добре. Скільки разів на тиждень?"},{u:"Чудово. Можете прислати приклад 10-хвилинного тренування?"}],
+   drafts:["Чудове питання! Звісно, існує багато ефективних вправ з власною вагою, які можна виконувати без обладнання. Я буду радий пояснити. Ви можете розвивати силу за допомогою віджимань, присідань, випадів, планки та берпі. Ці вправи задіюють усі основні групи м'язів. Будь ласка, не соромтесь звертатись, якщо потрібна додаткова допомога.","Звичайно! Я буду радий порекомендувати графік. Важливо зазначити, що для початківців оптимально 3-4 рази на тиждень, з днями відпочинку між ними. Хочу запевнити вас, що послідовність важливіша за інтенсивність. Звертайтесь будь-коли якщо виникнуть питання.","Звісно! Я буду радий поділитися прикладом тренування. Ось чудовий 10-хвилинний комплекс: по 45 секунд кожної вправи — стрибки, віджимання, присідання, планка, випади, з відпочинком 15 секунд між ними. Повторити двічі. Будьте впевнені, це підходить для більшості рівнів підготовки."]},
+  {name:"Харчування для м'язів",
+   turns:[{u:"Що треба їсти щоб набрати м'язи?"},{u:"Скільки білка на день?"},{u:"А якщо я вегетаріанець?"}],
+   drafts:["Чудове питання! Я буду радий допомогти. Щоб набрати м'язи, важливо зазначити, що потрібне поєднання білка, складних вуглеводів та корисних жирів. Дозвольте мені порекомендувати такі продукти: курка, яйця, риба, нежирна яловичина, грецький йогурт, кіноа, коричневий рис, овес, горіхи та багато овочів. Хочу запевнити вас, що калорійний профіцит близько 200-300 ккал вище норми є оптимальним.","Звичайно! Важливо зазначити, що загальна рекомендація — 1.6-2.2 грама білка на кілограм ваги тіла на день. Я буду радий допомогти вам розрахувати. Наприклад, якщо ви важите 70 кг, прагніть до 112-154 г щодня. Будь ласка, не соромтесь звертатись.","Звісно! Я радий запевнити вас, що вегетаріанська дієта абсолютно може підтримувати ріст м'язів. Дозвольте мені запропонувати сочевицю, нут, тофу, темпе, грецький йогурт, сир, яйця, кіноа та рослинні протеїнові порошки. Будьте впевнені, що ви можете досягти своїх цілей при правильному плануванні."]},
+  {name:"Схуднення",
+   turns:[{u:"Як досягти мети схуднення?"},{u:"Хочу скинути 10 кг. Це реально за 3 місяці?"},{u:"Мені робити кардіо чи силові?"}],
+   drafts:["Чудове питання! Я буду радий допомогти. Важливо зазначити, що стале схуднення походить від поєднання калорійного дефіциту, регулярних тренувань та змін способу життя. Дозвольте мені порекомендувати зосередитись на натуральних продуктах, пити багато води, спати 7-9 годин та бути послідовним. Хочу запевнити вас, що повільний темп виграє цю гонку.","Звичайно! Я цілком розумію вашу мету. Важливо зазначити, що безпечний темп — 0.5-1 кг на тиждень, тож 10 кг за 3 місяці досяжно але амбітно. Будь ласка, не соромтесь скоригувати терміни. Будьте впевнені, що послідовність важливіша за швидкість.","Звісно! Я буду радий пояснити. Важливо зазначити, що обидва важливі — кардіо спалює калорії під час тренування, а силові будують м'язи які прискорюють метаболізм надовго. Я буду радий порекомендувати поєднання: 3 силові та 2-3 кардіо сесії на тиждень."]},
+  {name:"Втрата мотивації",
+   turns:[{u:"Втратив мотивацію. Як продовжувати?"},{u:"Важко повернутись після пропущеного тижня."},{u:"Поради для довгострокової послідовності?"}],
+   drafts:["Чудове питання! Я цілком розумію ваше розчарування. Хочу запевнити вас, що втрата мотивації цілком нормальна і трапляється з усіма. Будь ласка, не соромтесь спробувати такі стратегії: ставити менші досяжні цілі, тренуватись з другом, відстежувати прогрес та святкувати малі перемоги. Будьте впевнені, що це фаза і ви її подолаєте.","Звісно! Я цілком розумію ваші почуття. Важливо зазначити, що пропуск тижня — це не кінець вашої подорожі. Дозвольте мені запропонувати почати сьогодні з 10 хвилин — щось завжди краще ніж нічого. Хочу запевнити вас, що один крок сьогодні — це все що має значення.","Звичайно! Я буду радий поділитись порадами. Дозвольте мені порекомендувати знайти активності які ви справді любите, планувати тренування як зустрічі, готувати одяг напередодні та памʼятати своє 'чому'. Будьте впевнені, що послідовність перемагає перфекціонізм щоразу."]},
+  {name:"Тренування з травмами",
+   turns:[{u:"У мене є травми. Які тренування безпечні?"},{u:"Іноді болить поперек."},{u:"Можу я робити кардіо?"}],
+   drafts:["Чудове питання! Я цілком розумію ваше занепокоєння. Хочу запевнити вас, що безпека на першому місці. Важливо зазначити, що я настійно рекомендую спочатку проконсультуватись з фізіотерапевтом або лікарем, щоб зрозуміти ваші обмеження. Будь ласка, не соромтесь поділитись деталями, щоб я міг надати більш персоналізовані поради.","Звісно! Я цілком розумію. При проблемах з попереком, важливо зазначити, що варто уникати важкої станової тяги, присідань з вагою та ударних рухів. Дозвольте мені порекомендувати вправи для кора: планки, bird-dog, dead bug, сідничний міст та мʼяку розтяжку. Хочу запевнити вас, що зміцнення кора часто допомагає зменшити біль у спині.","Звичайно! Я буду радий допомогти. Дозвольте мені порекомендувати низькоударне кардіо: плавання, велотренажер, еліпс та швидка ходьба. Будьте впевнені, що це бережно для суглобів та спини. Хочу запевнити вас, що ви абсолютно можете залишатись активним безпечно."]},
+  {name:"Зміна плану",
+   turns:[{u:"Хочу змінити свій план тренувань."},{u:"Хочу більше силових, менше кардіо."},{u:"Також можна додати дні відпочинку?"}],
+   drafts:["Чудове питання! Я буду радий допомогти вам скоригувати план. Хочу запевнити вас, що гнучкість важлива у будь-якій тренувальній програмі. Будь ласка, не соромтесь поділитись які зміни ви маєте на увазі, щоб я міг допомогти далі. Будьте впевнені, що ми можемо модифікувати план відповідно до ваших цілей.","Звісно! Я цілком розумію вашу перевагу. Я буду радий переструктурувати план з акцентом на силу. Дозвольте мені запропонувати перехід на 4 силові дні з важчими вагами та меншою кількістю повторень, та зменшити кардіо до 1-2 коротших сесій на тиждень. Будьте впевнені, це допоможе ефективніше розвивати мʼязи.","Звичайно! Я цілком розумію вашу потребу у більшому відновленні. Важливо зазначити, що відпочинок — це коли мʼязи насправді ростуть, тож більше днів відпочинку — чудова ідея. Я буду радий оновити план, додавши 2-3 повних дні відпочинку на тиждень."]}
+],
+de:[
+  {name:"Training ohne Geräte",
+   turns:[{u:"Wie kann ich ohne Geräte trainieren?"},{u:"Klingt gut. Wie oft pro Woche?"},{u:"Perfekt. Können Sie mir ein 10-Minuten-Beispiel senden?"}],
+   drafts:["Tolle Frage! Absolut, es gibt viele effektive Körpergewichtsübungen ohne Geräte. Ich würde mich sehr freuen zu erklären. Sie können definitiv Kraft aufbauen mit Liegestützen, Kniebeugen, Ausfallschritten, Planken und Burpees. Diese trainieren alle wichtigen Muskelgruppen. Bitte zögern Sie nicht nachzufragen.","Selbstverständlich! Ich würde mich sehr freuen einen Plan zu empfehlen. Es ist wichtig zu beachten dass für Anfänger 3-4 Mal pro Woche ideal sind, mit Ruhetagen dazwischen. Ich möchte Sie versichern dass Konsistenz wichtiger ist als Intensität.","Natürlich! Ich würde mich sehr freuen ein Beispiel zu teilen. Hier ist ein toller 10-Minuten-Zirkel: je 45 Sekunden Hampelmänner, Liegestütze, Kniebeugen, Planke, Ausfallschritte, mit 15 Sekunden Pause. Zweimal wiederholen. Seien Sie versichert dass dies für die meisten Fitnesslevel geeignet ist."]},
+  {name:"Ernährung für Muskelaufbau",
+   turns:[{u:"Was soll ich essen um Muskeln aufzubauen?"},{u:"Wie viel Protein pro Tag?"},{u:"Was wenn ich Vegetarier bin?"}],
+   drafts:["Tolle Frage! Ich würde mich sehr freuen zu helfen. Um Muskeln aufzubauen, ist es wichtig zu beachten dass Sie eine Kombination aus Protein, komplexen Kohlenhydraten und gesunden Fetten brauchen. Bitte erlauben Sie mir Lebensmittel wie Hähnchen, Eier, Fisch, mageres Rindfleisch, griechischen Joghurt, Quinoa und Haferflocken zu empfehlen. Ich möchte Sie versichern dass ein Kalorienüberschuss von 200-300 kcal ideal ist.","Selbstverständlich! Es ist wichtig zu beachten dass die allgemeine Empfehlung 1,6 bis 2,2 Gramm Protein pro Kilogramm Körpergewicht pro Tag ist. Ich würde mich sehr freuen bei der Berechnung zu helfen. Bei 70 kg sind das 112-154 g täglich.","Absolut! Ich möchte Sie versichern dass eine vegetarische Ernährung Muskelaufbau absolut unterstützen kann. Bitte erlauben Sie mir Linsen, Kichererbsen, Tofu, Tempeh, griechischen Joghurt, Hüttenkäse, Eier und pflanzliche Proteinpulver vorzuschlagen. Seien Sie versichert dass Sie Ihre Ziele erreichen können."]},
+  {name:"Gewichtsverlust",
+   turns:[{u:"Wie erreiche ich mein Abnehmziel?"},{u:"Ich möchte 10 kg abnehmen. In 3 Monaten realistisch?"},{u:"Cardio oder Krafttraining?"}],
+   drafts:["Tolle Frage! Ich würde mich sehr freuen zu helfen. Es ist wichtig zu beachten dass nachhaltiger Gewichtsverlust aus Kaloriendefizit, regelmäßigem Training und Lifestyle-Änderungen kommt. Bitte erlauben Sie mir zu empfehlen sich auf Vollwertkost zu konzentrieren, viel Wasser zu trinken und 7-9 Stunden zu schlafen.","Selbstverständlich! Ich verstehe Ihr Ziel vollkommen. Es ist wichtig zu beachten dass eine sichere Rate 0,5-1 kg pro Woche ist, also sind 10 kg in 3 Monaten machbar aber ambitioniert. Seien Sie versichert dass Konsistenz wichtiger ist als Geschwindigkeit.","Absolut! Ich würde mich sehr freuen zu erklären. Es ist wichtig zu beachten dass beide wichtig sind — Cardio verbrennt Kalorien während des Trainings, Krafttraining baut Muskeln auf die den Stoffwechsel langfristig ankurbeln. Ich empfehle 3 Krafttage und 2-3 Cardio-Einheiten."]},
+  {name:"Motivation verloren",
+   turns:[{u:"Ich habe die Motivation verloren. Wie weitermachen?"},{u:"Nach einer Woche Pause ist es schwer."},{u:"Tipps für langfristige Konsistenz?"}],
+   drafts:["Tolle Frage! Ich verstehe Ihre Frustration vollkommen. Ich möchte Sie versichern dass Motivationsverlust völlig normal ist. Bitte zögern Sie nicht Strategien auszuprobieren wie kleinere Ziele setzen, mit Freunden trainieren, Fortschritt verfolgen und kleine Erfolge feiern. Seien Sie versichert dass dies eine Phase ist.","Absolut! Ich verstehe wie Sie sich fühlen vollkommen. Es ist wichtig zu beachten dass eine Woche Pause nicht das Ende ist. Bitte erlauben Sie mir vorzuschlagen heute mit nur 10 Minuten zu starten — etwas ist immer besser als nichts.","Selbstverständlich! Ich würde mich sehr freuen Tipps zu teilen. Bitte erlauben Sie mir zu empfehlen Aktivitäten zu finden die Ihnen Spaß machen, Training wie Meetings zu planen, Ausrüstung am Vorabend vorzubereiten. Seien Sie versichert dass Konsistenz Perfektion jedes Mal schlägt."]},
+  {name:"Training mit Verletzungen",
+   turns:[{u:"Ich habe Verletzungen. Welches Training ist sicher?"},{u:"Mein unterer Rücken tut manchmal weh."},{u:"Kann ich noch Cardio machen?"}],
+   drafts:["Tolle Frage! Ich verstehe Ihre Sorge vollkommen. Ich möchte Sie versichern dass Sicherheit an erster Stelle steht. Es ist wichtig zu beachten dass ich dringend empfehle zuerst einen Physiotherapeuten oder Arzt zu konsultieren. Bitte zögern Sie nicht Details zu teilen. Seien Sie versichert dass es viele sichere Optionen gibt.","Absolut! Ich verstehe vollkommen. Für untere Rückenprobleme ist es wichtig zu beachten dass Sie schwere Kreuzheben, Kniebeugen mit Gewicht und hochimpact Bewegungen vermeiden sollten. Bitte erlauben Sie mir Core-Übungen wie Planken, Bird-Dogs, Dead Bugs und Glute Bridges zu empfehlen.","Selbstverständlich! Ich würde mich sehr freuen zu helfen. Bitte erlauben Sie mir low-impact Cardio wie Schwimmen, Radfahren, Crosstrainer und zügiges Gehen zu empfehlen. Seien Sie versichert dass diese gelenkschonend sind."]},
+  {name:"Trainingsplan ändern",
+   turns:[{u:"Ich möchte meinen Trainingsplan ändern."},{u:"Mehr Kraft, weniger Cardio."},{u:"Können wir auch mehr Ruhetage hinzufügen?"}],
+   drafts:["Tolle Frage! Ich würde mich sehr freuen beim Anpassen zu helfen. Ich möchte Sie versichern dass Flexibilität wichtig ist. Bitte zögern Sie nicht zu teilen welche Änderungen Sie im Sinn haben. Seien Sie versichert dass wir den Plan anpassen können.","Absolut! Ich verstehe Ihre Präferenz vollkommen. Ich würde mich sehr freuen den Plan auf Kraft auszurichten. Bitte erlauben Sie mir 4 Krafttage mit schwereren Gewichten vorzuschlagen und Cardio auf 1-2 kürzere Einheiten zu reduzieren.","Selbstverständlich! Ich verstehe vollkommen. Es ist wichtig zu beachten dass Ruhe ist wenn Muskeln wachsen, also sind mehr Ruhetage eine großartige Idee. Ich würde mich sehr freuen den Plan mit 2-3 vollen Ruhetagen pro Woche zu aktualisieren."]}
+],
+fr:[
+  {name:"Sans équipement",
+   turns:[{u:"Comment puis-je m'entraîner sans équipement ?"},{u:"Combien de fois par semaine ?"},{u:"Parfait. Pouvez-vous m'envoyer un exemple de 10 minutes ?"}],
+   drafts:["Excellente question ! Absolument, il y a beaucoup d'exercices efficaces au poids du corps sans équipement. Je serais plus que ravi d'expliquer. Vous pouvez définitivement développer votre force avec des pompes, squats, fentes, planches et burpees. Ces exercices ciblent tous les principaux groupes musculaires. N'hésitez pas à demander si vous avez besoin de plus de conseils.","Certainement ! Je serais ravi de recommander un programme. Il est important de noter que pour les débutants, 3-4 fois par semaine est idéal, avec des jours de repos. Je tiens à vous assurer que la régularité est plus importante que l'intensité.","Bien sûr ! Je serais plus que ravi de partager un exemple. Voici un super circuit de 10 minutes : 45 secondes chacun de jumping jacks, pompes, squats, planche, fentes, avec 15 secondes de repos. Répéter deux fois. Soyez assuré que c'est adapté à la plupart des niveaux."]},
+  {name:"Alimentation pour muscles",
+   turns:[{u:"Que dois-je manger pour prendre du muscle ?"},{u:"Combien de protéines par jour ?"},{u:"Et si je suis végétarien ?"}],
+   drafts:["Excellente question ! Je serais plus que ravi d'aider. Pour prendre du muscle, il est important de noter que vous avez besoin d'une combinaison de protéines, glucides complexes et bonnes graisses. Je serais ravi de recommander du poulet, des œufs, du poisson, du bœuf maigre, du yaourt grec, du quinoa et des flocons d'avoine. Je tiens à vous assurer qu'un surplus calorique de 200-300 kcal est idéal.","Certainement ! Il est important de noter que la recommandation générale est 1,6 à 2,2 grammes de protéines par kilo de poids corporel par jour. Je serais ravi d'aider à calculer. Pour 70 kg, visez 112-154 g quotidiens.","Absolument ! Je tiens à vous assurer qu'un régime végétarien peut absolument soutenir la prise de muscle. Je serais plus que ravi de suggérer lentilles, pois chiches, tofu, tempeh, yaourt grec, fromage cottage, œufs et poudres protéinées végétales. Soyez assuré que vous pouvez atteindre vos objectifs."]},
+  {name:"Perte de poids",
+   turns:[{u:"Comment atteindre mon objectif de perte de poids ?"},{u:"Je veux perdre 10 kg. Réaliste en 3 mois ?"},{u:"Cardio ou musculation ?"}],
+   drafts:["Excellente question ! Je serais plus que ravi d'aider. Il est important de noter que la perte de poids durable vient d'une combinaison de déficit calorique, d'exercice régulier et de changements de mode de vie. Je serais ravi de recommander de se concentrer sur les aliments entiers, boire beaucoup d'eau et dormir 7-9 heures.","Certainement ! Je comprends tout à fait votre objectif. Il est important de noter qu'un rythme sain est 0,5-1 kg par semaine, donc 10 kg en 3 mois est réalisable mais ambitieux. Soyez assuré que la régularité est plus importante que la vitesse.","Absolument ! Je serais plus que ravi d'expliquer. Il est important de noter que les deux sont cruciaux — le cardio brûle des calories pendant l'entraînement, la musculation construit du muscle qui booste le métabolisme à long terme. Je recommande 3 séances de musculation et 2-3 cardio par semaine."]},
+  {name:"Perte de motivation",
+   turns:[{u:"J'ai perdu ma motivation. Comment continuer ?"},{u:"C'est dur de revenir après une semaine."},{u:"Des conseils pour la régularité long terme ?"}],
+   drafts:["Excellente question ! Je comprends tout à fait votre frustration. Je tiens à vous assurer que perdre la motivation est tout à fait normal et arrive à tout le monde. N'hésitez pas à essayer des stratégies comme fixer des objectifs plus petits, s'entraîner avec un ami, suivre vos progrès et célébrer les petites victoires. Soyez assuré que c'est une phase.","Absolument ! Je comprends tout à fait comment vous vous sentez. Il est important de noter qu'une semaine manquée n'est pas la fin. Je serais ravi de suggérer de commencer aujourd'hui avec juste 10 minutes — quelque chose vaut toujours mieux que rien.","Certainement ! Je serais plus que ravi de partager des conseils. Je serais ravi de recommander de trouver des activités que vous aimez vraiment, planifier les entraînements comme des réunions, préparer votre tenue la veille. Soyez assuré que la régularité bat la perfection à chaque fois."]},
+  {name:"Entraînement blessures",
+   turns:[{u:"J'ai des blessures. Quels entraînements sont sûrs ?"},{u:"Mon bas du dos me fait parfois mal."},{u:"Puis-je quand même faire du cardio ?"}],
+   drafts:["Excellente question ! Je comprends tout à fait votre inquiétude. Je tiens à vous assurer que la sécurité est primordiale. Il est important de noter que je recommande fortement de consulter d'abord un kinésithérapeute. N'hésitez pas à partager plus de détails pour des suggestions personnalisées. Soyez assuré qu'il y a beaucoup d'options sûres.","Absolument ! Je comprends tout à fait. Pour les problèmes de bas du dos, il est important de noter qu'il faut éviter le soulevé de terre lourd, les squats avec charge et les mouvements à fort impact. Je serais ravi de recommander des exercices de renforcement du core comme planches, bird-dogs, dead bugs et ponts fessiers.","Certainement ! Je serais plus que ravi d'aider. Je serais ravi de recommander du cardio à faible impact comme natation, vélo stationnaire, elliptique et marche rapide. Soyez assuré que c'est doux pour les articulations."]},
+  {name:"Changer le plan",
+   turns:[{u:"Je veux changer mon plan d'entraînement."},{u:"Plus de force, moins de cardio."},{u:"On peut aussi ajouter des jours de repos ?"}],
+   drafts:["Excellente question ! Je serais plus que ravi d'aider à ajuster. Je tiens à vous assurer que la flexibilité est importante. N'hésitez pas à partager les changements que vous envisagez. Soyez assuré que nous pouvons modifier le plan.","Absolument ! Je comprends tout à fait votre préférence. Je serais ravi de restructurer le plan pour mettre l'accent sur la force. Je serais plus que ravi de suggérer 4 jours de musculation avec des poids plus lourds et moins de répétitions, et réduire le cardio à 1-2 séances plus courtes.","Certainement ! Je comprends tout à fait. Il est important de noter que le repos est quand les muscles grandissent vraiment, donc plus de jours de repos est une excellente idée. Je serais plus que ravi de mettre à jour le plan avec 2-3 jours de repos complets par semaine."]}
+],
+es:[
+  {name:"Sin equipo",
+   turns:[{u:"¿Cómo puedo entrenar sin equipo?"},{u:"¿Cuántas veces por semana?"},{u:"¿Puedes enviarme un ejemplo de 10 minutos?"}],
+   drafts:["¡Excelente pregunta! ¡Absolutamente, hay muchos ejercicios efectivos con el peso corporal sin equipo! Estaré encantado de explicar. Definitivamente puedes desarrollar fuerza con flexiones, sentadillas, zancadas, planchas y burpees. Estos ejercicios trabajan todos los grupos musculares principales. No dude en preguntar si necesita más orientación.","¡Por supuesto! Estaré encantado de recomendar un horario. Es importante señalar que para principiantes, 3-4 veces por semana es ideal, con días de descanso. Quiero asegurarle que la consistencia importa más que la intensidad.","¡Claro! Estaré encantado de compartir un ejemplo. Aquí hay un gran circuito de 10 minutos: 45 segundos cada uno de jumping jacks, flexiones, sentadillas, plancha, zancadas, con 15 segundos de descanso. Repetir dos veces. Tenga por seguro que es adecuado para la mayoría."]},
+  {name:"Alimentación músculos",
+   turns:[{u:"¿Qué debo comer para ganar músculo?"},{u:"¿Cuánta proteína al día?"},{u:"¿Y si soy vegetariano?"}],
+   drafts:["¡Excelente pregunta! Estaré encantado de ayudar. Para ganar músculo, es importante señalar que necesitas una combinación de proteína, carbohidratos complejos y grasas saludables. Permítame recomendar pollo, huevos, pescado, carne magra, yogur griego, quinoa y avena. Quiero asegurarle que un superávit calórico de 200-300 kcal es ideal.","¡Por supuesto! Es importante señalar que la recomendación general es 1,6 a 2,2 gramos de proteína por kilo de peso corporal al día. Estaré encantado de ayudar a calcular. Para 70 kg, apunta a 112-154 g diarios.","¡Absolutamente! Quiero asegurarle que una dieta vegetariana puede apoyar absolutamente el crecimiento muscular. Permítame sugerir lentejas, garbanzos, tofu, tempeh, yogur griego, requesón, huevos y polvos proteicos vegetales. Tenga por seguro que puede alcanzar sus objetivos."]},
+  {name:"Perder peso",
+   turns:[{u:"¿Cómo alcanzar mi objetivo de perder peso?"},{u:"Quiero perder 10 kg. ¿Realista en 3 meses?"},{u:"¿Cardio o fuerza?"}],
+   drafts:["¡Excelente pregunta! Estaré encantado de ayudar. Es importante señalar que la pérdida de peso sostenible viene de una combinación de déficit calórico, ejercicio regular y cambios en el estilo de vida. Permítame recomendar enfocarse en alimentos integrales, beber mucha agua y dormir 7-9 horas.","¡Por supuesto! Entiendo completamente su objetivo. Es importante señalar que un ritmo seguro es 0,5-1 kg por semana, así que 10 kg en 3 meses es alcanzable pero ambicioso. Tenga por seguro que la consistencia es más importante que la velocidad.","¡Absolutamente! Estaré encantado de explicar. Es importante señalar que ambos son cruciales — el cardio quema calorías durante el entrenamiento, la fuerza construye músculo que acelera el metabolismo a largo plazo. Recomiendo 3 sesiones de fuerza y 2-3 cardio por semana."]},
+  {name:"Sin motivación",
+   turns:[{u:"Perdí la motivación. ¿Cómo continuar?"},{u:"Es difícil volver después de una semana."},{u:"¿Consejos para consistencia a largo plazo?"}],
+   drafts:["¡Excelente pregunta! Entiendo completamente su frustración. Quiero asegurarle que perder motivación es completamente normal y le pasa a todos. No dude en probar estrategias como establecer metas más pequeñas, entrenar con un amigo, seguir su progreso y celebrar pequeñas victorias. Tenga por seguro que esto es una fase.","¡Absolutamente! Entiendo completamente cómo se siente. Es importante señalar que perder una semana no es el fin. Permítame sugerir comenzar hoy con solo 10 minutos — algo siempre es mejor que nada.","¡Por supuesto! Estaré encantado de compartir consejos. Permítame recomendar encontrar actividades que realmente disfrute, programar entrenamientos como reuniones, preparar su ropa la noche anterior. Tenga por seguro que la consistencia supera a la perfección cada vez."]},
+  {name:"Lesiones",
+   turns:[{u:"Tengo lesiones. ¿Qué entrenamientos son seguros?"},{u:"Mi espalda baja a veces duele."},{u:"¿Puedo seguir haciendo cardio?"}],
+   drafts:["¡Excelente pregunta! Entiendo completamente su preocupación. Quiero asegurarle que la seguridad es lo primero. Es importante señalar que recomiendo fuertemente consultar primero con un fisioterapeuta. No dude en compartir más detalles para sugerencias personalizadas. Tenga por seguro que hay muchas opciones seguras.","¡Absolutamente! Entiendo completamente. Para problemas de espalda baja, es importante señalar que debe evitar peso muerto pesado, sentadillas con peso y movimientos de alto impacto. Permítame recomendar ejercicios de core como planchas, bird-dogs, dead bugs y puentes de glúteo.","¡Por supuesto! Estaré encantado de ayudar. Permítame recomendar cardio de bajo impacto como natación, bicicleta estática, elíptica y caminata rápida. Tenga por seguro que son suaves para las articulaciones."]},
+  {name:"Cambiar plan",
+   turns:[{u:"Quiero cambiar mi plan de entrenamiento."},{u:"Más fuerza, menos cardio."},{u:"¿Podemos añadir más días de descanso?"}],
+   drafts:["¡Excelente pregunta! Estaré encantado de ayudar a ajustar. Quiero asegurarle que la flexibilidad es importante. No dude en compartir qué cambios tiene en mente. Tenga por seguro que podemos modificar el plan.","¡Absolutamente! Entiendo completamente su preferencia. Estaré encantado de reestructurar el plan enfocándose en fuerza. Permítame sugerir 4 días de fuerza con pesos más pesados y menos repeticiones, y reducir cardio a 1-2 sesiones más cortas.","¡Por supuesto! Entiendo completamente. Es importante señalar que el descanso es cuando los músculos realmente crecen, así que más días de descanso es una gran idea. Estaré encantado de actualizar el plan con 2-3 días completos de descanso."]}
+],
+it:[
+  {name:"Senza attrezzatura",
+   turns:[{u:"Come posso allenarmi senza attrezzatura?"},{u:"Quante volte a settimana?"},{u:"Può inviarmi un esempio di 10 minuti?"}],
+   drafts:["Ottima domanda! Assolutamente, ci sono molti esercizi efficaci a corpo libero senza attrezzatura. Sarò felice di spiegare. Può assolutamente sviluppare forza con flessioni, squat, affondi, plank e burpee. Questi esercizi coinvolgono tutti i gruppi muscolari principali. Non esiti a chiedere se ha bisogno di più indicazioni.","Certamente! Sarò felice di raccomandare un programma. È importante notare che per i principianti, 3-4 volte a settimana è ideale, con giorni di riposo. Voglio assicurarla che la costanza conta più dell'intensità.","Certo! Sarò felice di condividere un esempio. Ecco un ottimo circuito di 10 minuti: 45 secondi ciascuno di jumping jacks, flessioni, squat, plank, affondi, con 15 secondi di riposo. Ripetere due volte. Stia tranquillo che è adatto alla maggior parte dei livelli."]},
+  {name:"Alimentazione muscoli",
+   turns:[{u:"Cosa devo mangiare per mettere massa?"},{u:"Quante proteine al giorno?"},{u:"E se sono vegetariano?"}],
+   drafts:["Ottima domanda! Sarò felice di aiutare. Per mettere massa, è importante notare che serve una combinazione di proteine, carboidrati complessi e grassi sani. Mi permetta di raccomandare pollo, uova, pesce, manzo magro, yogurt greco, quinoa e avena. Voglio assicurarla che un surplus calorico di 200-300 kcal è ideale.","Certamente! È importante notare che la raccomandazione generale è 1,6-2,2 grammi di proteine per kg di peso corporeo al giorno. Sarò felice di aiutare a calcolare. Per 70 kg, punti a 112-154 g giornalieri.","Assolutamente! Voglio assicurarla che una dieta vegetariana può assolutamente supportare la crescita muscolare. Mi permetta di suggerire lenticchie, ceci, tofu, tempeh, yogurt greco, ricotta, uova e polveri proteiche vegetali. Stia tranquillo che può raggiungere i suoi obiettivi."]},
+  {name:"Perdere peso",
+   turns:[{u:"Come raggiungere l'obiettivo di dimagrire?"},{u:"Voglio perdere 10 kg. Realistico in 3 mesi?"},{u:"Cardio o pesi?"}],
+   drafts:["Ottima domanda! Sarò felice di aiutare. È importante notare che la perdita di peso sostenibile viene da una combinazione di deficit calorico, esercizio regolare e cambiamenti nello stile di vita. Mi permetta di raccomandare di concentrarsi su cibi integrali, bere molta acqua e dormire 7-9 ore.","Certamente! Capisco perfettamente il suo obiettivo. È importante notare che un ritmo sicuro è 0,5-1 kg a settimana, quindi 10 kg in 3 mesi è raggiungibile ma ambizioso. Stia tranquillo che la costanza è più importante della velocità.","Assolutamente! Sarò felice di spiegare. È importante notare che entrambi sono cruciali — il cardio brucia calorie durante l'allenamento, i pesi costruiscono muscoli che accelerano il metabolismo a lungo termine. Raccomando 3 sessioni di pesi e 2-3 cardio a settimana."]},
+  {name:"Motivazione persa",
+   turns:[{u:"Ho perso la motivazione. Come continuare?"},{u:"È difficile tornare dopo una settimana."},{u:"Consigli per la costanza a lungo termine?"}],
+   drafts:["Ottima domanda! Capisco perfettamente la sua frustrazione. Voglio assicurarla che perdere motivazione è completamente normale e capita a tutti. Non esiti a provare strategie come fissare obiettivi più piccoli, allenarsi con un amico, tracciare i progressi e celebrare piccole vittorie. Stia tranquillo che è una fase.","Assolutamente! Capisco perfettamente come si sente. È importante notare che saltare una settimana non è la fine. Mi permetta di suggerire di iniziare oggi con solo 10 minuti — qualcosa è sempre meglio di niente.","Certamente! Sarò felice di condividere consigli. Mi permetta di raccomandare di trovare attività che le piacciono davvero, programmare gli allenamenti come riunioni, preparare il kit la sera prima. Stia tranquillo che la costanza batte la perfezione ogni volta."]},
+  {name:"Infortuni",
+   turns:[{u:"Ho infortuni. Quali allenamenti sono sicuri?"},{u:"A volte mi fa male la schiena bassa."},{u:"Posso ancora fare cardio?"}],
+   drafts:["Ottima domanda! Capisco perfettamente la sua preoccupazione. Voglio assicurarla che la sicurezza viene prima. È importante notare che raccomando fortemente di consultare prima un fisioterapista. Non esiti a condividere più dettagli per suggerimenti personalizzati. Stia tranquillo che ci sono molte opzioni sicure.","Assolutamente! Capisco perfettamente. Per problemi lombari, è importante notare che deve evitare stacchi pesanti, squat con pesi e movimenti ad alto impatto. Mi permetta di raccomandare esercizi per il core come plank, bird-dogs, dead bugs e ponti glutei.","Certamente! Sarò felice di aiutare. Mi permetta di raccomandare cardio a basso impatto come nuoto, cyclette, ellittica e camminata veloce. Stia tranquillo che sono delicati per le articolazioni."]},
+  {name:"Cambiare piano",
+   turns:[{u:"Voglio cambiare il mio piano di allenamento."},{u:"Più forza, meno cardio."},{u:"Possiamo aggiungere più giorni di riposo?"}],
+   drafts:["Ottima domanda! Sarò felice di aiutare ad aggiustare. Voglio assicurarla che la flessibilità è importante. Non esiti a condividere quali cambiamenti ha in mente. Stia tranquillo che possiamo modificare il piano.","Assolutamente! Capisco perfettamente la sua preferenza. Sarò felice di ristrutturare il piano concentrandosi sulla forza. Mi permetta di suggerire 4 giorni di forza con pesi più pesanti e meno ripetizioni, e ridurre il cardio a 1-2 sessioni più brevi.","Certamente! Capisco perfettamente. È importante notare che il riposo è quando i muscoli crescono davvero, quindi più giorni di riposo è un'ottima idea. Sarò felice di aggiornare il piano con 2-3 giorni completi di riposo a settimana."]}
+],
+pl:[
+  {name:"Bez sprzętu",
+   turns:[{u:"Jak mogę ćwiczyć bez sprzętu?"},{u:"Ile razy w tygodniu?"},{u:"Czy możesz wysłać przykład 10-minutowy?"}],
+   drafts:["Doskonałe pytanie! Absolutnie, jest wiele skutecznych ćwiczeń z masą ciała bez sprzętu. Chętnie wyjaśnię. Możesz zdecydowanie budować siłę poprzez pompki, przysiady, wykroki, deski i burpees. Te ćwiczenia angażują wszystkie główne grupy mięśniowe. Nie wahaj się zapytać jeśli potrzebujesz więcej wskazówek.","Oczywiście! Chętnie polecę harmonogram. Ważne jest aby zauważyć, że dla początkujących 3-4 razy w tygodniu jest idealnie, z dniami odpoczynku. Chcę zapewnić, że konsekwencja ma większe znaczenie niż intensywność.","Oczywiście! Chętnie podzielę się przykładem. Oto świetny 10-minutowy obwód: po 45 sekund każdego — pajacyki, pompki, przysiady, deska, wykroki, z 15 sekundami odpoczynku. Powtórzyć dwa razy. Proszę być pewnym, że to odpowiednie dla większości poziomów."]},
+  {name:"Jedzenie na mięśnie",
+   turns:[{u:"Co jeść aby zbudować mięśnie?"},{u:"Ile białka dziennie?"},{u:"A jeśli jestem wegetarianinem?"}],
+   drafts:["Doskonałe pytanie! Chętnie pomogę. Aby zbudować mięśnie, ważne jest aby zauważyć, że potrzebujesz kombinacji białka, węglowodanów złożonych i zdrowych tłuszczów. Pozwoli Pan że polecę kurczaka, jajka, rybę, chude mięso, jogurt grecki, komosę i owsiankę. Chcę zapewnić, że nadwyżka kaloryczna 200-300 kcal jest idealna.","Oczywiście! Ważne jest aby zauważyć, że ogólna rekomendacja to 1,6-2,2 grama białka na kilogram masy ciała dziennie. Chętnie pomogę obliczyć. Dla 70 kg, celuj w 112-154 g dziennie.","Absolutnie! Chcę zapewnić, że dieta wegetariańska może absolutnie wspierać wzrost mięśni. Pozwoli Pan że zaproponuję soczewicę, ciecierzycę, tofu, tempeh, jogurt grecki, twaróg, jajka i roślinne odżywki białkowe. Proszę być pewnym, że możesz osiągnąć swoje cele."]},
+  {name:"Utrata wagi",
+   turns:[{u:"Jak osiągnąć cel utraty wagi?"},{u:"Chcę zrzucić 10 kg. Realistyczne w 3 miesiące?"},{u:"Cardio czy siłowe?"}],
+   drafts:["Doskonałe pytanie! Chętnie pomogę. Ważne jest aby zauważyć, że zrównoważona utrata wagi pochodzi z kombinacji deficytu kalorycznego, regularnych ćwiczeń i zmian stylu życia. Pozwoli Pan że polecę skupienie się na pełnowartościowych produktach, piciu dużo wody i spaniu 7-9 godzin.","Oczywiście! W pełni rozumiem Twój cel. Ważne jest aby zauważyć, że bezpieczne tempo to 0,5-1 kg tygodniowo, więc 10 kg w 3 miesiące jest osiągalne ale ambitne. Proszę być pewnym, że konsekwencja jest ważniejsza niż szybkość.","Absolutnie! Chętnie wyjaśnię. Ważne jest aby zauważyć, że oba są kluczowe — cardio spala kalorie podczas treningu, siłowe buduje mięśnie które przyspieszają metabolizm długoterminowo. Polecam 3 sesje siłowe i 2-3 cardio tygodniowo."]},
+  {name:"Utrata motywacji",
+   turns:[{u:"Straciłem motywację. Jak kontynuować?"},{u:"Trudno wrócić po tygodniu przerwy."},{u:"Porady na długoterminową konsekwencję?"}],
+   drafts:["Doskonałe pytanie! W pełni rozumiem Twoją frustrację. Chcę zapewnić, że utrata motywacji jest zupełnie normalna i zdarza się wszystkim. Nie wahaj się spróbować strategii jak ustawianie mniejszych celów, trenowanie z przyjacielem, śledzenie postępów i świętowanie małych zwycięstw. Proszę być pewnym, że to faza.","Absolutnie! W pełni rozumiem jak się czujesz. Ważne jest aby zauważyć, że przepuszczony tydzień to nie koniec. Pozwoli Pan że zaproponuję zacząć dziś od tylko 10 minut — coś jest zawsze lepsze niż nic.","Oczywiście! Chętnie podzielę się poradami. Pozwoli Pan że polecę znalezienie aktywności które naprawdę lubisz, planowanie treningów jak spotkań, przygotowywanie stroju wieczorem wcześniej. Proszę być pewnym, że konsekwencja bije perfekcję za każdym razem."]},
+  {name:"Kontuzje",
+   turns:[{u:"Mam kontuzje. Które treningi są bezpieczne?"},{u:"Czasem boli mnie dolny kręgosłup."},{u:"Czy mogę nadal robić cardio?"}],
+   drafts:["Doskonałe pytanie! W pełni rozumiem Twoje obawy. Chcę zapewnić, że bezpieczeństwo jest priorytetem. Ważne jest aby zauważyć, że zdecydowanie polecam najpierw skonsultować się z fizjoterapeutą. Nie wahaj się podzielić większą ilością szczegółów dla spersonalizowanych sugestii. Proszę być pewnym, że jest wiele bezpiecznych opcji.","Absolutnie! W pełni rozumiem. Dla problemów z dolnym kręgosłupem, ważne jest aby zauważyć, że należy unikać ciężkich martwych ciągów, przysiadów z ciężarem i ruchów o dużym wpływie. Pozwoli Pan że polecę ćwiczenia na core jak deski, bird-dogs, dead bugs i mostki pośladkowe.","Oczywiście! Chętnie pomogę. Pozwoli Pan że polecę cardio o niskim wpływie jak pływanie, rower stacjonarny, orbitrek i szybki marsz. Proszę być pewnym, że są łagodne dla stawów."]},
+  {name:"Zmiana planu",
+   turns:[{u:"Chcę zmienić plan treningowy."},{u:"Więcej siłowych, mniej cardio."},{u:"Możemy dodać więcej dni odpoczynku?"}],
+   drafts:["Doskonałe pytanie! Chętnie pomogę dostosować. Chcę zapewnić, że elastyczność jest ważna. Nie wahaj się podzielić jakie zmiany masz na myśli. Proszę być pewnym, że możemy zmodyfikować plan.","Absolutnie! W pełni rozumiem Twoje preferencje. Chętnie przebuduję plan z naciskiem na siłę. Pozwoli Pan że zaproponuję 4 dni siłowe z cięższymi ciężarami i mniejszą liczbą powtórzeń, i zredukowanie cardio do 1-2 krótszych sesji.","Oczywiście! W pełni rozumiem. Ważne jest aby zauważyć, że odpoczynek to moment gdy mięśnie rosną, więc więcej dni odpoczynku to świetny pomysł. Chętnie zaktualizuję plan z 2-3 pełnymi dniami odpoczynku tygodniowo."]}
+]
+};
+
+let S={lang:'en',scIdx:-1,turnIdx:0,origDraft:''};
+
+function init(){buildScenarios()}
+
+function buildScenarios(){
+  const c=document.getElementById('scenarios');
+  c.innerHTML='';
+  SCENARIOS[S.lang].forEach((sc,i)=>{
+    const b=document.createElement('button');
+    b.className='sc-btn'+(i===S.scIdx?' active':'');
+    b.textContent=sc.name;
+    b.onclick=()=>pickScenario(i);
+    c.appendChild(b);
+  });
+}
+
+function switchLang(code){
+  S.lang=code;S.scIdx=-1;S.turnIdx=0;S.origDraft='';
+  buildScenarios();
+  document.getElementById('chat').innerHTML='';
+  document.getElementById('editorPanel').classList.add('hidden');
+}
+
+function pickScenario(idx){
+  S.scIdx=idx;S.turnIdx=0;S.origDraft='';
+  buildScenarios();
+  document.getElementById('chat').innerHTML='';
+  const sc=SCENARIOS[S.lang][idx];
+  addUserMsg(sc.turns[0].u);
+  setTimeout(()=>loadDraft(0),500);
+}
+
+function addUserMsg(text){
+  const chat=document.getElementById('chat');
+  const div=document.createElement('div');
+  div.className='msg user';
+  div.innerHTML=`<div class="avatar">🙍</div><div class="bubble">${esc(text)}</div>`;
+  chat.appendChild(div);
+  chat.scrollTop=chat.scrollHeight;
+}
+
+function addAgentMsg(text,reactionClass,reactionText){
+  const chat=document.getElementById('chat');
+  const div=document.createElement('div');
+  div.className='msg agent';
+  div.innerHTML=`<div class="avatar agent">🎧</div><div style="max-width:75%"><div class="bubble">${esc(text)}</div></div>`;
+  chat.appendChild(div);
+  const r=document.createElement('div');
+  r.className='msg user';
+  r.innerHTML=`<div class="avatar">🙍</div><div class="reaction ${reactionClass}">${esc(reactionText)}</div>`;
+  setTimeout(()=>{chat.appendChild(r);chat.scrollTop=chat.scrollHeight},400);
+  chat.scrollTop=chat.scrollHeight;
+}
+
+function loadDraft(ti){
+  const sc=SCENARIOS[S.lang][S.scIdx];
+  const draft=sc.drafts[ti]||sc.drafts[0];
+  S.origDraft=draft;
+  document.getElementById('editorPanel').classList.remove('hidden');
+  const area=document.getElementById('editor');
+  area.value=draft;
+  updatePreview(draft);
+  setTimeout(()=>area.focus(),100);
+}
+
+function updatePreview(text){
+  const fillers=FILLERS[S.lang]||FILLERS.en;
+  const sorted=[...fillers].sort((a,b)=>b.length-a.length);
+  let html=esc(text);
+  sorted.forEach(f=>{
+    const escapedF=esc(f).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    const re=new RegExp('('+escapedF+')','gi');
+    html=html.replace(re,'<span class="ai-phrase">$1</span>');
+  });
+  document.getElementById('preview').innerHTML=html||'<span style="color:#9ca3af">Start typing...</span>';
+}
+
+function onEdit(){
+  const v=document.getElementById('editor').value;
+  updatePreview(v);
+  const status=document.getElementById('status');
+  const fillers=FILLERS[S.lang]||FILLERS.en;
+  const found=fillers.filter(f=>v.toLowerCase().includes(f.toLowerCase()));
+  const changed=v.trim()!==S.origDraft.trim();
+  if(!changed){
+    status.className='editor-status warn';
+    status.textContent='⚠️ Unchanged — rewrite in your own words';
+  } else if(found.length>0){
+    status.className='editor-status warn';
+    status.textContent=`${found.length} AI phrase${found.length>1?'s':''} still present`;
+  } else {
+    status.className='editor-status ok';
+    status.textContent='✓ Sounds human';
+  }
+}
+
+function sendMsg(){
+  const v=document.getElementById('editor').value.trim();
+  if(!v)return;
+  const fillers=FILLERS[S.lang]||FILLERS.en;
+  const found=fillers.filter(f=>v.toLowerCase().includes(f.toLowerCase()));
+  const changed=v.trim()!==S.origDraft.trim();
+  const reactions=REACTIONS[S.lang]||REACTIONS.en;
+  let pool,cls;
+  if(!changed || found.length>=3){pool=reactions.bad;cls='bad'}
+  else if(found.length>0){pool=reactions.ok;cls='ok'}
+  else{pool=reactions.good;cls='good'}
+  const r=pool[Math.floor(Math.random()*pool.length)];
+  addAgentMsg(v,cls,r);
+  document.getElementById('editorPanel').classList.add('hidden');
+  const sc=SCENARIOS[S.lang][S.scIdx];
+  const next=S.turnIdx+1;
+  if(next<sc.turns.length){
+    S.turnIdx=next;
+    setTimeout(()=>{
+      addUserMsg(sc.turns[next].u);
+      setTimeout(()=>loadDraft(next),400);
+    },1400);
+  }
+}
+
+function resetDraft(){
+  document.getElementById('editor').value=S.origDraft;
+  updatePreview(S.origDraft);
+  onEdit();
+}
+
+function resetSession(){
+  S={lang:S.lang,scIdx:-1,turnIdx:0,origDraft:''};
+  buildScenarios();
+  document.getElementById('chat').innerHTML='';
+  document.getElementById('editorPanel').classList.add('hidden');
+}
+
+function copyText(){
+  const v=document.getElementById('editor').value;
+  navigator.clipboard.writeText(v).then(()=>{
+    const s=document.getElementById('status');
+    const old=s.textContent,oldCls=s.className;
+    s.className='editor-status ok';s.textContent='✓ Copied';
+    setTimeout(()=>{s.className=oldCls;s.textContent=old},1500);
+  });
+}
+
+async function pasteText(){
+  try{
+    const t=await navigator.clipboard.readText();
+    const ed=document.getElementById('editor');
+    const start=ed.selectionStart,end=ed.selectionEnd;
+    ed.value=ed.value.slice(0,start)+t+ed.value.slice(end);
+    ed.selectionStart=ed.selectionEnd=start+t.length;
+    ed.focus();
+    onEdit();
+  }catch(e){alert('Use Ctrl+V instead')}
+}
+
+function selectAll(){
+  const ed=document.getElementById('editor');
+  ed.focus();ed.select();
+}
+
+function clearText(){
+  document.getElementById('editor').value='';
+  updatePreview('');
+  onEdit();
+  document.getElementById('editor').focus();
+}
+
+function esc(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+init();
+</script>
+</body>
+</html>
